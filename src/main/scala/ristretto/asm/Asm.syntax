@@ -1,0 +1,116 @@
+// Syntax file for x86-64
+module ristretto.asm.Asm;
+
+header {
+  import ristretto.asm.AsmSyntax.*;
+}
+
+body {
+}
+
+Root
+  = Proc+
+  .
+
+Proc
+  = ".globl" Location nestnl(Insn+)
+  .
+
+Insn {line}
+  = "pushq" Src              {Push}
+  | "popq" Dst               {Pop1}
+  | "addq" Src "," Dst         {Add}
+  | "subq" Src "," Dst         {Sub}
+  | "imulq" Src "," Dst         {Mul}
+  | "idivq" Operand         {Div}
+  | "shlq" Src "," Dst         {Shl}
+  | "shrq" Src "," Dst         {Shr}
+  | "andq" Src "," Dst {And}
+  | "xorq" Src "," Dst {Xor}
+  | "orq" Src "," Dst {Or}
+  | "movq" Src "," Dst  {Mov}
+  | "cmpq" Register "," Register {Cmp}
+  | "jmp" Location {Jmp}
+  | "je" Location {JE}
+  | "jg" Location {JG}
+  | "jl" Location {JL}
+  | "jge" Location {JGE}
+  | "jle" Location {JLE}
+  | "jne" Location {JNE}
+  | "callq" Operand {Call}
+  | "retq" {Ret}
+  | Location ":" {Label}
+  | "#" CommentString {CommentInsn}
+  .
+
+CommentString : String
+  = (![\r\n] _)*
+  .
+
+Location : String
+  = Identifier Spacing
+  .
+
+Src : Operand
+  = Operand
+  .
+
+Dst : Operand
+  = Operand
+  .
+
+Operand
+  = '$' Value         {Immediate, 1: Long.parseLong: Long}
+  | Offset '(' Register ')'  {Address, 1: Long.parseLong: Long}
+  | Identifier  Spacing          {Name}
+  | Register
+  | Pseudo
+  | '%param' Integer Spacing {Param, 1: Integer.parseInt: Int}
+  | '%arg' Integer Spacing {Arg, 1: Integer.parseInt: Int}
+  .
+
+Pseudo : Operand
+  = '%' Identifier Spacing
+  .
+
+Register : Operand
+  = '%rax' Spacing {AX}
+  | '%rbx' Spacing {BX}
+  | '%rcx' Spacing {CX}
+  | '%rdx' Spacing {DX}
+  | '%rdi' Spacing {DI}
+  | '%rsi' Spacing {SI}
+  | '%rbp' Spacing {BP}
+  | '%rsp' Spacing {SP}
+  | '%r8' Spacing {R8}
+  | '%r9' Spacing {R9}
+  | '%r10' Spacing {R10}
+  | '%r11' Spacing {R11}
+  | '%r12' Spacing {R12}
+  | '%r13' Spacing {R13}
+  | '%r14' Spacing {R14}
+  | '%r15' Spacing {R15}
+  .
+
+Value : String
+  = Integer Spacing
+  .
+
+Offset : String
+  = Integer Spacing
+  .
+
+Integer : String
+  = Digits
+  | '0x' HexDigits
+  | '-' Digits
+  | '-' '0x' HexDigits
+  .
+
+Digits : String
+  = [0-9]+
+  .
+
+HexDigits : String
+  = [0-9a-fA-F]+
+  .

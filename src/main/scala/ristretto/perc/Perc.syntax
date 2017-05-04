@@ -1,0 +1,100 @@
+module ristretto.perc.Perc;
+
+header {
+  import ristretto.perc.PercSyntax.*;
+}
+
+body {
+}
+
+Root
+  = Proc+
+  .
+
+Proc {line}
+  = Label '(' TempName ++ "," ')' ':' nest(Stm+)
+  .
+
+TempName : String
+  = Identifier Spacing
+  .
+
+Label : String
+  = Identifier Spacing
+  .
+
+Stm {line}
+  = "nop" {Nop}
+  | "error" Integer Spacing {ErrorStm, 1: Integer.parseInt: Int}
+  | "cjump" Comparison Exp "," Label {CJmp}
+  | "jump" Label {Jmp}
+  | "store" Address "=" Value                      {Store}
+  | TempName sp "=" "call" Exp {Call}
+  | TempName sp "=" "load" Address  {Load}
+  | TempName sp "=" Exp {Move}
+  | TempName sp "=" Operator Exp "," Exp {Bin}
+  | "setarg" Integer Spacing "," Exp  {SetArg, 1: Integer.parseInt: Int}
+  | "ret" Exp  {Ret}
+  | Label ':' {LabelStm}
+  .
+
+Offset : String
+  = Integer Spacing
+  .
+
+Value : Exp
+  = Exp
+  .
+
+Base : Exp
+  = Exp
+  .
+
+Exp
+  = TempName {Temp}
+  | Lit
+  | '$' Label  {Global}
+  | Address
+  .
+
+Lit : Exp
+  = Integer Spacing {1: Long.parseLong: Long}
+  .
+
+Address : Exp
+  = "[" Offset "+" Base "]"    {1: Integer.parseInt : Int}
+  .
+
+Operator
+  = "add" {ADD}
+  | "sub" {SUB}
+  | "mul" {MUL}
+  | "div" {DIV}
+  | "rem" {REM}
+  .
+
+Comparison
+  = "lt" {LT}
+  | "gt" {GT}
+  | "le" {LE}
+  | "ge" {GE}
+  | "eq" {EQ}
+  | "ne" {NE}
+  .
+
+Name : String
+  = Identifier Spacing
+  .
+
+Integer : String
+  = '-'? Digits
+  | '-'? HexDigits
+  .
+
+Digits : String
+  = [0-9]+
+  .
+
+HexDigits : String
+  = '0x' [0-9a-fA-F]+
+  .

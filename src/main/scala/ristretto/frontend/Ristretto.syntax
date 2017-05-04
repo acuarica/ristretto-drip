@@ -1,0 +1,138 @@
+module ristretto.frontend.Ristretto;
+
+header {
+  import ristretto.frontend.RistrettoSyntax.*;
+}
+
+body {
+  private static int countBrackets(String s) {
+    int n = 0;
+    for (int i = 0; i < s.length(); i++) {
+      if (s.charAt(i) == '[')
+        n++;
+    }
+    return n;
+  }
+}
+
+Root
+  = Spacing Def+ EOF
+  .
+
+Def {line}
+  = FunDef
+  | ExternDef
+  .
+
+FunDef : Def
+  = TyTreeOrVoid Name '(' Param ** "," ')' Block
+  .
+
+ExternDef : Def
+  = "extern" TyTreeOrVoid Name '(' Param ** "," ')' ";"
+  .
+
+TyTree
+  = BaseTyTree Brackets Spacing        {MultiArrayTyTree, 2: Ristretto.countBrackets: Int}
+  | BaseTyTree
+  .
+
+// HACK: we recognize the brackets as a string, then count the number of
+// brackets to get the dimensionality of the array.
+Brackets : String
+  = ( '[' ']' )+
+  .
+
+TyTreeOrVoid : TyTree
+  = TyTree
+  | "void" {VoidTyTree}
+  .
+
+BaseTyTree : TyTree
+  = "int"                         {IntTyTree}
+  | "boolean"                     {BooleanTyTree}
+  .
+
+Param
+  = TyTree Name
+  .
+
+Primary : Exp
+  = "{" Exp ++ "," "}"  {ArrayLit}
+  | StringLiteral Spacing {StringLit}
+  | IntLiteral Spacing {IntLit, 1: Long.parseLong : Long}
+  | "true" {True}
+  | "false" {False}
+  | Call
+  | Name {Var}
+  | '(' Exp ')'
+  .
+
+Exp {paren}
+  = Exp "||" Exp            {Or, left, 8}
+  | Exp "&&" Exp            {And, left, 7}
+  | Exp "==" Exp            {Eq, left, 6}
+  | Exp "!=" Exp            {Ne, left, 6}
+  | Exp "<" Exp             {Lt, left, 5}
+  | Exp "<=" Exp            {Le, left, 5}
+  | Exp ">" Exp             {Gt, left, 5}
+  | Exp ">=" Exp            {Ge, left, 5}
+  | Exp "+" Exp             {Add, left, 4}
+  | Exp "-" Exp             {Sub, left, 4}
+  | Exp "*" Exp             {Mul, left, 3}
+  | Exp "/" Exp             {Div, left, 3}
+  | Exp "%" Exp             {Mod, left, 3}
+  | '-' Exp                 {Neg, 2}
+  | '!' Exp                 {Not, 2}
+  | Primary '.' "length"        {ArrayLength, 1}
+  | Primary ( '[' Exp ']' )+    {MultiArrayGet, 1}
+  | "new" TyTree ( '[' Exp ']' )+     {NewMultiArray}
+  | Primary
+  .
+
+Call : Exp
+  = Name '(' Exp ** "," ')'
+  .
+
+Block : Stm
+  = '{' nest(Stm*) \n '}'
+  .
+
+Stm
+  = "if" '(' Exp ')' nest(Stm) "else" nest(Stm)  {IfElse}
+  | "if" '(' Exp ')' nest(Stm) {IfThen}
+  | "while" '(' Exp ')' nest(Stm) {While}
+  | "return" Exp? ';' {Return}
+  | Block
+  | Call ';' {CallStm}
+  | Name sp "=" Exp ';' {Assign}
+  | TyTree Name "=" Exp ';' {VarDefStm}
+  | Primary ( '[' Exp ']' )+ sp "=" Exp ';' {MultiArrayAssign}
+  .
+
+Name : String
+  = Identifier Spacing
+  .
+
+IntLiteral : String
+  = Digits
+  .
+
+Digits : String
+  = [0-9]+
+  .
+
+Digit : String
+  = [0-9]
+  .
+
+StringLiteral : String
+  = ["] (Escape / !["\\] _)* ["]
+  .
+
+Escape        : String = '\\' [btnfr"'\[\\\]] / '\\' [u] HexQuad / OctalEscape.
+OctalEscape   : String = '\\' ([0-3] OctDigit OctDigit / OctDigit OctDigit / OctDigit).
+
+HexQuad       : String = HexDigit HexDigit HexDigit HexDigit.
+HexDigit      : String = [0-9a-fA-F].
+OctDigit      : String = [0-7].

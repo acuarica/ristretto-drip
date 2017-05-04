@@ -1,0 +1,13 @@
+#!/bin/sh
+
+for i in "$@"
+do
+  sfile=${i%%.r}.s
+  if [ `uname` = Linux ]; then
+    sbt "run-main ristretto.main.Compiler --print-all --pretty --linux $i"
+  else
+    sbt "run-main ristretto.main.Compiler --print-all --pretty $i"
+  fi
+  gcc -std=c99 $sfile runtime/library.c runtime/runtime.c -o ${i%%.r}
+done
+

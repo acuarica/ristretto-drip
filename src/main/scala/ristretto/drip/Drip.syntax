@@ -1,0 +1,103 @@
+module ristretto.drip.Drip;
+
+header {
+  import ristretto.drip.DripSyntax.*;
+}
+
+body {
+}
+
+option verbose;
+
+Root
+  = Proc+
+  .
+
+Proc {line}
+  = Label '(' TempName ++ "," ')' ":" nestnl(Exp)
+  .
+
+TempName : String
+  = Identifier Spacing
+  .
+
+Label : String
+  = Identifier Spacing
+  .
+
+Stm {line}
+  = "nop" {Nop}
+  | "error" Integer Spacing {ErrorStm, 1: Integer.parseInt : Int}
+  | "cjump" Exp "," Label {CJmp}
+  | "jump" Label {Jmp}
+  | "hstore" '[' Offset '+' Address ']' "," Value    {Store, 1: Integer.parseInt : Int}
+  | "move" TempName sp "=" Exp {Move}
+  | Label ':' {LabelStm}
+  .
+
+Offset : String
+  = Integer Spacing
+  .
+
+Address : Exp
+  = Exp
+  .
+
+Value : Exp
+  = Exp
+  .
+
+Size : Exp
+  = Exp
+  .
+
+Exp
+  = "begin" nest(Stm*) \n Exp {Begin}
+  | "call" Address '(' Exp ** "," ')' {Call}
+  | "hallocate" '(' Size ')' {Alloc}
+  | "hload" '[' Offset '+' Address ']'    {Load, 1: Integer.parseInt : Int}
+  | Operator Exp1 "," Exp1 {BinOp}
+  | Exp1
+  .
+
+Exp1 : Exp
+  = TempName {Temp}
+  | Lit
+  | '$' Label  {Global}
+  | '(' Exp ')'
+  .
+
+Lit : Exp
+  = Integer Spacing {1: Long.parseLong: Long}
+  .
+
+Operator
+  = "lt" {LT}
+  | "gt" {GT}
+  | "le" {LE}
+  | "ge" {GE}
+  | "eq" {EQ}
+  | "ne" {NE}
+  | "add" {ADD}
+  | "sub" {SUB}
+  | "mul" {MUL}
+  | "div" {DIV}
+  | "rem" {REM}
+  .
+
+Name : String
+  = Identifier Spacing
+  .
+
+Integer : String
+  = '-'? Digits
+  | '-'? HexDigits
+  .
+
+Digits : String
+  = [0-9]+
+  .
+
+HexDigits : String
+  = '0x' [0-9a-fA-F]+
+  .
