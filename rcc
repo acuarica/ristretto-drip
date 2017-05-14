@@ -8,6 +8,6 @@ do
   else
     sbt "run-main ristretto.main.Compiler --print-all --pretty $i"
   fi
-  gcc -std=c99 $sfile runtime/library.c runtime/runtime.c -o ${i%%.r}
+  gcc -std=c99 $sfile runtime/library.c runtime/runtime.c -o ${i%%.r}.mach
 done
 
